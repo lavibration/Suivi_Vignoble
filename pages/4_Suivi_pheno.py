@@ -47,24 +47,28 @@ EE_PROJECT_ID = 'phenologie-477519'  # Mettez votre ID de projet ici
 # Initialisation Earth Engine
 if "ee_initialized" not in st.session_state:
     try:
-        # Vérifie si des credentials de service account sont disponibles dans Streamlit secrets
+        # Mode Streamlit Cloud → st.secrets
         if "gcp_service_account" in st.secrets:
-            service_account_info = st.secrets["gcp_service_account"]
-            credentials = ee.ServiceAccountCredentials(
-                email=service_account_info["client_email"],
-                key_data=json.dumps(service_account_info)
-            )
-            ee.Initialize(credentials, project=EE_PROJECT_ID)
+            service_account_info = dict(st.secrets["gcp_service_account"])
+
         else:
-            # Mode local avec authentification interactive
-            ee.Initialize(project=EE_PROJECT_ID)
+            # Mode local → fichier dans .streamlit/
+            with open(".streamlit/service_account.json") as f:
+                service_account_info = json.load(f)
+
+        credentials = ee.ServiceAccountCredentials(
+            email=service_account_info["client_email"],
+            key_data=service_account_info
+        )
+
+        ee.Initialize(credentials, project=service_account_info["project_id"])
 
         st.session_state["ee_initialized"] = True
-        st.success("✅ Google Earth Engine initialisé avec succès !")
+        st.success("✅ Earth Engine initialisé avec succès !")
 
     except Exception as e:
         st.error(
-            f"❌ Erreur d'initialisation Earth Engine pour le projet '{EE_PROJECT_ID}' : {e}"
+            f"❌ Erreur d'initialisation Earth Engine : {e}"
         )
         st.stop()
 
